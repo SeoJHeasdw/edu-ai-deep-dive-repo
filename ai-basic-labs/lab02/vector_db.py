@@ -11,10 +11,23 @@ Vector Database 실습 (ChromaDB)
 3. 거리와 유사도 이해하기 - 스코어 해석
 4. 메타데이터 필터링 - 조건부 검색
 5. 실전 예제 - 문서 관리 시스템
+
+[!] Windows 사용자 주의:
+    Python 3.13에서 ChromaDB 사용 시 segmentation fault 발생 가능
+    
+    해결 방법:
+    1. Python 3.11 또는 3.12로 다운그레이드 (권장)
+       - pyenv 또는 conda 사용 권장
+    
+    2. 또는 호환 버전 강제 설치:
+       pip install chromadb==0.4.22 hnswlib==0.8.0 --force-reinstall
+    
+    3. 그래도 안 되면 WSL2 사용 고려
 """
 
 import os
 import sys
+import platform
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
@@ -857,6 +870,34 @@ def main():
     print("\n" + "="*80)
     print("[LAB] Vector Database 실습 (ChromaDB)")
     print("="*80)
+    
+    # Python 버전 및 OS 체크
+    python_version = sys.version_info
+    is_windows = platform.system() == "Windows"
+    
+    print(f"\n[INFO] 실행 환경:")
+    print(f"   Python 버전: {python_version.major}.{python_version.minor}.{python_version.micro}")
+    print(f"   운영체제: {platform.system()}")
+    
+    # Windows + Python 3.13 경고
+    if is_windows and python_version.major == 3 and python_version.minor >= 13:
+        print("\n" + "!"*80)
+        print("[!] 경고: Windows + Python 3.13 조합에서 ChromaDB 호환성 문제 발생 가능")
+        print("!"*80)
+        print("\n[해결 방법]")
+        print("  1. Python 3.11 또는 3.12로 다운그레이드 (권장)")
+        print("     예: pyenv install 3.12.0 && pyenv local 3.12.0")
+        print()
+        print("  2. 호환 버전 강제 설치:")
+        print("     pip install chromadb==0.4.22 hnswlib==0.8.0 --force-reinstall")
+        print()
+        print("  3. WSL2 (Windows Subsystem for Linux) 사용")
+        print()
+        
+        response = input("[?] 계속 진행하시겠습니까? (y/n): ").strip().lower()
+        if response != 'y':
+            print("\n[종료] 프로그램을 종료합니다.")
+            return
     
     print("\n[LIST] 실습 항목:")
     print("  1. 임베딩(Embedding) 이해하기 - 텍스트를 벡터로 변환")

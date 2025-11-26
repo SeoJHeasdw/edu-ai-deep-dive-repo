@@ -1,4 +1,13 @@
 # AI Basic Labs - 공통 Requirements
+# 
+# [!] Windows 사용자 주의사항:
+#     Python 3.13에서 ChromaDB 사용 시 segmentation fault 발생 가능
+#     권장: Python 3.11.x 또는 3.12.x 사용
+#     
+#     해결 방법:
+#     1. Python 3.11 또는 3.12로 다운그레이드 (권장)
+#     2. 또는 아래 명령어로 호환 버전 설치:
+#        pip install chromadb==0.4.22 hnswlib==0.8.0 --force-reinstall
 
 # OpenAI
 openai>=1.0.0
@@ -10,13 +19,15 @@ tiktoken>=0.5.0
 nltk>=3.8.0
 
 # 데이터 처리
-numpy>=1.24.0
+numpy>=1.24.0,<2.0.0  # numpy 2.0은 일부 라이브러리와 호환 문제 있음
 
 # 환경변수 관리
 python-dotenv>=1.0.0
 
 # Vector Database (Lab 02)
-chromadb>=0.4.0
+# Windows + Python 3.13 호환성 문제로 버전 고정
+chromadb==0.4.22
+hnswlib==0.8.0  # ChromaDB의 핵심 의존성, 버전 고정 필요
 
 # RAG 시스템 (Lab 03)
 pdfplumber>=0.10.0     # PDF 파일 읽기 (한글 지원)

@@ -34,6 +34,36 @@
 
 ## 🚀 설치 및 실행
 
+### ⚠️ Windows 사용자 주의사항
+
+**Python 3.13에서 ChromaDB 사용 시 segmentation fault 발생 가능!**
+
+#### 해결 방법 (우선순위 순)
+
+**방법 1: Python 버전 다운그레이드 (권장)**
+```bash
+# pyenv 사용 (권장)
+pyenv install 3.12.0
+pyenv local 3.12.0
+
+# 또는 conda 사용
+conda create -n ai-labs python=3.12
+conda activate ai-labs
+```
+
+**방법 2: 호환 버전 강제 설치**
+```bash
+pip install chromadb==0.4.22 hnswlib==0.8.0 --force-reinstall
+```
+
+**방법 3: WSL2 사용**
+```bash
+# Windows에서 WSL2 설치 후 Linux 환경에서 실행
+wsl --install
+```
+
+### 일반 설치 및 실행
+
 ```bash
 # 1. 프로젝트 루트로 이동
 cd ai-basic-labs
@@ -48,6 +78,26 @@ echo "OPENAI_API_KEY=your-api-key-here" > .env
 cd lab02
 python vector_db.py
 ```
+
+### 문제 해결
+
+**증상**: `Segmentation fault` 또는 프로그램이 갑자기 종료됨
+
+**원인**: 
+- Python 3.13과 ChromaDB의 의존성 라이브러리(hnswlib) 간 호환성 문제
+- Windows에서 특히 빈번하게 발생
+
+**확인 방법**:
+```bash
+python --version  # Python 버전 확인
+pip list | grep chromadb  # ChromaDB 버전 확인
+pip list | grep hnswlib   # hnswlib 버전 확인
+```
+
+**권장 환경**:
+- Python: 3.11.x 또는 3.12.x
+- ChromaDB: 0.4.22
+- hnswlib: 0.8.0
 
 ## 📖 핵심 개념 설명
 

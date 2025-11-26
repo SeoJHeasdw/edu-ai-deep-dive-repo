@@ -2,9 +2,26 @@
 
 AI 기초 실습 프로젝트 모음
 
+## ⚠️ Windows 사용자 필독
+
+**Python 3.13에서 ChromaDB 사용 시 segmentation fault 발생 가능!**
+
+→ **해결 방법**: [WINDOWS_TROUBLESHOOTING.md](./WINDOWS_TROUBLESHOOTING.md) 참고
+
+**권장**: Python 3.11 또는 3.12 사용
+
+```bash
+# pyenv 사용 예시
+pyenv install 3.12.0
+pyenv local 3.12.0
+```
+
 ## 🚀 빠른 시작
 
 ```bash
+# 0. Python 버전 확인 (3.11 또는 3.12 권장)
+python --version
+
 # 1. 의존성 설치
 pip install -r requirements.txt
 
