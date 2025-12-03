@@ -27,7 +27,8 @@ python-dotenv>=1.0.0
 # Vector Database (Lab 02)
 # Windows + Python 3.13 호환성 문제로 버전 고정
 chromadb>=0.4.0
-# hnswlib==0.8.0  # ChromaDB의 핵심 의존성, 버전 고정 필요
+# hnswlib==0.8.0  # ChromaDB의 핵심 의존성, 버전 고정 필요 
+# Windows : WSL 권장 (미사용 시 C++ Build Tools 설치 필수)
 
 # RAG 시스템 (Lab 03)
 pdfplumber>=0.10.0     # PDF 파일 읽기 (한글 지원)
