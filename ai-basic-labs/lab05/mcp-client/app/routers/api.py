@@ -1,5 +1,5 @@
 """API routes for ARI Processing"""
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks, Response
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks, Response, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse
 from typing import List, Optional
 import tempfile
@@ -12,6 +12,7 @@ import yaml
 from app.models import HealthResponse, RagConfig, ProcessingMetadata, DocumentAnalysis, NavigationMenu, NavigationItem
 from app.infrastructure.mcp.mcp_service import mcp_service
 from app.infrastructure.llm.llm_service import llm_service
+from app.application.conference.service import conference_service
 
 logger = logging.getLogger(__name__)
 
@@ -494,3 +495,324 @@ async def chat_endpoint(
             "tools_used": [],
             "has_markdown": False
         }
+
+
+# ============================================================================
+# Multi-Agent Conference Endpoints
+# ============================================================================
+
+@router.get("/conference/patterns", tags=["conference"])
+async def get_conference_patterns():
+    """
+    사용 가능한 멀티 에이전트 패턴 목록 조회
+    
+    Returns:
+        List[Dict]: 패턴 목록
+    """
+    return {
+        "success": True,
+        "patterns": conference_service.get_available_patterns()
+    }
+
+
+@router.websocket("/ws/conference")
+async def conference_websocket(websocket: WebSocket):
+    """
+    멀티 에이전트 회의 WebSocket 엔드포인트 (실시간 스트리밍)
+    
+    **연결 흐름:**
+    1. 클라이언트가 WebSocket 연결
+    2. 클라이언트가 회의 설정 전송:
+       ```json
+       {
+         "pattern": "sequential",
+         "topic": "AI 멀티 에이전트 시스템",
+         "max_rounds": 3,
+         "num_agents": 5
+       }
+       ```
+    3. 서버가 실시간으로 에이전트 메시지 스트리밍:
+       ```json
+       {
+         "type": "agent_message",
+         "node": "summarizer",
+         "content": "요약 내용...",
+         "status": "completed"
+       }
+       ```
+    4. 완료 시:
+       ```json
+       {
+         "type": "conference_complete",
+         "pattern": "sequential",
+         "status": "completed"
+       }
+       ```
+    """
+    await websocket.accept()
+    logger.info("🔌 WebSocket 연결됨")
+    
+    try:
+        # 클라이언트로부터 회의 설정 받기
+        data = await websocket.receive_json()
+        
+        pattern = data.get("pattern")
+        topic = data.get("topic")
+        
+        if not pattern or not topic:
+            await websocket.send_json({
+                "type": "error",
+                "error": "pattern과 topic은 필수입니다",
+                "status": "error"
+            })
+            await websocket.close()
+            return
+        
+        logger.info(f"🎯 회의 시작: pattern={pattern}, topic={topic}")
+        
+        # 패턴별 추가 옵션
+        kwargs = {}
+        if pattern == "debate":
+            kwargs["max_rounds"] = data.get("max_rounds", 3)
+        elif pattern == "swarm":
+            kwargs["num_agents"] = data.get("num_agents", 5)
+        
+        # 회의 실행 (WebSocket 스트리밍)
+        result = await conference_service.run_conference(
+            pattern=pattern,
+            topic=topic,
+            websocket=websocket,
+            **kwargs
+        )
+        
+        logger.info(f"✅ 회의 완료: pattern={pattern}")
+    
+    except WebSocketDisconnect:
+        logger.info("🔌 WebSocket 연결 끊김")
+    
+    except Exception as e:
+        logger.error(f"❌ 회의 오류: {e}", exc_info=True)
+        
+        try:
+            await websocket.send_json({
+                "type": "error",
+                "error": str(e),
+                "status": "error"
+            })
+        except:
+            pass
+    
+    finally:
+        try:
+            await websocket.close()
+        except:
+            pass
+
+
+@router.websocket("/ws/hitl")
+async def websocket_hitl_conference(websocket: WebSocket):
+    """
+    HITL (Human-in-the-Loop) 패턴 전용 WebSocket 엔드포인트
+    
+    실제 사람이 개입할 수 있는 3단 분기 워크플로우:
+    - ✅ APPROVE: 제안 승인
+    - 🟡 REVISION: 수정 요청 (피드백 반영 후 재생성)
+    - ⛔ REJECT: 제안 거부
+    
+    **클라이언트 → 서버 메시지:**
+    
+    1. 세션 시작:
+    ```json
+    {"action": "start", "topic": "AI 기반 추천 시스템 설계"}
+    ```
+    
+    2. 사람 결정 제출:
+    ```json
+    {
+        "action": "decision",
+        "session_id": "abc123",
+        "decision": "revision",  // approve, revision, reject
+        "feedback": "비용 분석 부분을 더 상세히 작성해주세요"
+    }
+    ```
+    
+    **서버 → 클라이언트 메시지:**
+    
+    1. 세션 시작됨:
+    ```json
+    {"type": "hitl_session_start", "session_id": "abc123", ...}
+    ```
+    
+    2. 사람 입력 대기:
+    ```json
+    {"type": "hitl_awaiting_input", "proposal": "...", "revision_count": 0, ...}
+    ```
+    
+    3. 에이전트 메시지:
+    ```json
+    {"type": "agent_message", "node": "proposal_generator", "content": "...", ...}
+    ```
+    
+    4. 완료:
+    ```json
+    {"type": "conference_complete", "pattern": "hitl", ...}
+    ```
+    """
+    await websocket.accept()
+    logger.info("🔌 [HITL] WebSocket 연결됨")
+    
+    session_id = None
+    
+    try:
+        while True:
+            # 클라이언트 메시지 수신
+            data = await websocket.receive_json()
+            action = data.get("action")
+            
+            if action == "start":
+                # 새 HITL 세션 시작
+                topic = data.get("topic")
+                if not topic:
+                    await websocket.send_json({
+                        "type": "error",
+                        "error": "topic은 필수입니다",
+                        "status": "error"
+                    })
+                    continue
+                
+                logger.info(f"🚀 [HITL] 세션 시작 요청: topic={topic}")
+                
+                # 세션 시작
+                result = await conference_service.start_hitl_session(
+                    topic=topic,
+                    websocket=websocket,
+                    max_revisions=data.get("max_revisions", 3)
+                )
+                
+                # session_id 저장
+                session_id = result.get("session_id")
+                
+                logger.info(f"✅ [HITL] 세션 시작됨: {session_id}")
+            
+            elif action == "decision":
+                # 사람의 결정 처리
+                decision = data.get("decision")  # approve, revision, reject
+                feedback = data.get("feedback", "")
+                req_session_id = data.get("session_id") or session_id
+                
+                if not req_session_id:
+                    await websocket.send_json({
+                        "type": "error",
+                        "error": "session_id가 필요합니다",
+                        "status": "error"
+                    })
+                    continue
+                
+                if not decision:
+                    await websocket.send_json({
+                        "type": "error",
+                        "error": "decision은 필수입니다 (approve, revision, reject)",
+                        "status": "error"
+                    })
+                    continue
+                
+                logger.info(f"👤 [HITL] 사람 결정: {decision}, feedback={feedback[:50]}...")
+                
+                # 결정 처리 및 다음 단계 실행
+                result = await conference_service.run_hitl_step(
+                    session_id=req_session_id,
+                    human_decision=decision,
+                    human_feedback=feedback,
+                    websocket=websocket
+                )
+                
+                # 완료 체크
+                if result.get("status") == "completed" or result.get("workflow_status") == "completed":
+                    logger.info(f"✅ [HITL] 워크플로우 완료")
+                    break
+            
+            else:
+                await websocket.send_json({
+                    "type": "error",
+                    "error": f"알 수 없는 action: {action}. 'start' 또는 'decision'을 사용하세요.",
+                    "status": "error"
+                })
+    
+    except WebSocketDisconnect:
+        logger.info("🔌 [HITL] WebSocket 연결 끊김")
+        # 세션 정리
+        if session_id and session_id in conference_service.active_sessions:
+            del conference_service.active_sessions[session_id]
+    
+    except Exception as e:
+        logger.error(f"❌ [HITL] 오류: {e}", exc_info=True)
+        
+        try:
+            await websocket.send_json({
+                "type": "error",
+                "error": str(e),
+                "status": "error"
+            })
+        except:
+            pass
+    
+    finally:
+        try:
+            await websocket.close()
+        except:
+            pass
+
+
+@router.post("/conference/run", tags=["conference"])
+async def run_conference(
+    pattern: str = Form(..., description="패턴 이름"),
+    topic: str = Form(..., description="회의 주제"),
+    max_rounds: Optional[int] = Form(3, description="Debate 패턴의 최대 라운드 수"),
+    num_agents: Optional[int] = Form(5, description="Swarm 패턴의 에이전트 수")
+):
+    """
+    멀티 에이전트 회의 실행 (일반 POST, 스트리밍 없음)
+    
+    **지원 패턴:**
+    - `sequential`: 순차 파이프라인 (A → B → C)
+    - `planner_executor`: 계획-실행 패턴
+    - `role_based`: 역할 기반 협업
+    - `hierarchical`: 계층 구조 (Manager-Workers)
+    - `debate`: 토론 패턴 (Proposer ↔ Critic)
+    - `swarm`: 군집 패턴 (경쟁 기반 선택)
+    
+    **예시:**
+    ```bash
+    curl -X POST "http://localhost:8000/api/conference/run" \
+      -F "pattern=sequential" \
+      -F "topic=AI 멀티 에이전트 시스템"
+    ```
+    """
+    try:
+        logger.info(f"🎯 회의 시작 (POST): pattern={pattern}, topic={topic}")
+        
+        # 패턴별 추가 옵션
+        kwargs = {}
+        if pattern == "debate":
+            kwargs["max_rounds"] = max_rounds
+        elif pattern == "swarm":
+            kwargs["num_agents"] = num_agents
+        
+        # 회의 실행 (스트리밍 없음)
+        result = await conference_service.run_conference(
+            pattern=pattern,
+            topic=topic,
+            websocket=None,
+            **kwargs
+        )
+        
+        logger.info(f"✅ 회의 완료 (POST): pattern={pattern}")
+        
+        return {
+            "success": True,
+            **result
+        }
+    
+    except Exception as e:
+        logger.error(f"❌ 회의 오류: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))

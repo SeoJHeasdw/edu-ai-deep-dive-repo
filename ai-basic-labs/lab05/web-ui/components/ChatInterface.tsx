@@ -99,18 +99,43 @@ export function ChatInterface() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-12rem)] bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-16rem)] glass rounded-3xl shadow-2xl overflow-hidden border border-white/20 dark:border-gray-700/50">
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="text-6xl mb-4">💬</div>
-            <h2 className="text-2xl font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              채팅을 시작해보세요
+            <div className="relative mb-6">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full blur-2xl opacity-30 animate-pulse-slow"></div>
+              <div className="relative w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center animate-float shadow-2xl">
+                <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              </div>
+            </div>
+            <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 mb-3">
+              Agent와 대화를 시작하세요
             </h2>
-            <p className="text-gray-500 dark:text-gray-400">
-              일반 대화를 하거나 HTML 파일을 업로드하여 분석할 수 있습니다.
+            <p className="text-gray-600 dark:text-gray-400 mb-6 max-w-md">
+              일반 대화를 하거나 HTML 파일을 업로드하여 지능형 문서 분석을 시작할 수 있습니다
             </p>
+            
+            {/* Example prompts */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 w-full max-w-2xl">
+              <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200/50 dark:border-blue-800/50">
+                <svg className="w-6 h-6 text-blue-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">일반 대화</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">"HTML이란 무엇인가요?"</p>
+              </div>
+              <div className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200/50 dark:border-purple-800/50">
+                <svg className="w-6 h-6 text-purple-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">문서 분석</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">"이 파일의 내용을 추출해줘"</p>
+              </div>
+            </div>
           </div>
         ) : (
           <>
@@ -118,10 +143,17 @@ export function ChatInterface() {
               <ChatMessage key={message.id} message={message} />
             ))}
             {isLoading && (
-              <div className="flex items-center space-x-2 text-gray-500">
-                <div className="animate-bounce">●</div>
-                <div className="animate-bounce delay-100">●</div>
-                <div className="animate-bounce delay-200">●</div>
+              <div className="flex items-start space-x-3">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                </div>
+                <div className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-700 px-4 py-3 rounded-2xl">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                </div>
               </div>
             )}
             <div ref={messagesEndRef} />
@@ -131,7 +163,7 @@ export function ChatInterface() {
 
       {/* File Upload Area */}
       {uploadedFiles.length > 0 && (
-        <div className="px-4 py-2 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600">
+        <div className="px-4 py-3 bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-900/10 dark:to-purple-900/10 border-t border-blue-200/50 dark:border-blue-800/50 backdrop-blur-sm">
           <FileUpload 
             files={uploadedFiles} 
             onFilesChange={setUploadedFiles}
@@ -140,7 +172,7 @@ export function ChatInterface() {
       )}
 
       {/* Input Area */}
-      <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-700">
+      <div className="border-t border-gray-200/50 dark:border-gray-700/50 p-4 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm">
         <ChatInput
           onSend={handleSendMessage}
           isLoading={isLoading}
