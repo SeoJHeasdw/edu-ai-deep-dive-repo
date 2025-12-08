@@ -46,6 +46,7 @@ ENV/
 *.json
 !package.json
 !package-lock.json
+!tsconfig.json
 chroma_db/
 vector_store/
 
