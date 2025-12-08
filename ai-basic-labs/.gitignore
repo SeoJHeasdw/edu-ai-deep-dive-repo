@@ -44,6 +44,8 @@ ENV/
 *.sqlite
 *.csv
 *.json
+!package.json
+!package-lock.json
 chroma_db/
 vector_store/
 
